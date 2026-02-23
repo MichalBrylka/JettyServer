@@ -2,13 +2,13 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Booking API",
-    "description": "API for managing guest bookings based on the BookingServlet implementation.",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "description": "A simple Jetty-based Booking API with Basic Auth for deletions."
   },
   "paths": {
     "/bookings": {
       "get": {
-        "summary": "List all bookings",
+        "summary": "Get all bookings",
         "responses": {
           "200": {
             "description": "A list of bookings",
@@ -16,9 +16,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Booking"
-                  }
+                  "items": { "$ref": "#/components/schemas/Booking" }
                 }
               }
             }
@@ -31,41 +29,13 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Booking"
-              }
+              "schema": { "$ref": "#/components/schemas/Booking" }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Booking created",
-            "headers": {
-              "Location": {
-                "description": "URL of the new booking",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Booking"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or malformed JSON",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
+          "201": { "description": "Booking created" },
+          "400": { "description": "Invalid input or malformed JSON" }
         }
       }
     },
@@ -77,107 +47,56 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "integer"
-            }
+            "schema": { "type": "integer" }
           }
         ],
         "responses": {
           "200": {
-            "description": "The booking details",
+            "description": "Booking details",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Booking"
-                }
+                "schema": { "$ref": "#/components/schemas/Booking" }
               }
             }
           },
-          "400": {
-            "description": "Invalid ID format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Booking not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
+          "404": { "description": "Booking not found" }
         }
       },
       "delete": {
         "summary": "Delete a booking",
+        "security": [
+          { "basicAuth": [] }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "integer"
-            }
+            "schema": { "type": "integer" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Booking deleted successfully"
-          },
-          "400": {
-            "description": "Invalid ID format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Booking not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
+          "204": { "description": "Booking deleted successfully" },
+          "401": { "description": "Unauthorized - Basic Auth required" },
+          "404": { "description": "Booking not found" }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
     "schemas": {
       "Booking": {
         "type": "object",
-        "required": [
-          "id",
-          "guestName"
-        ],
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "guestName": {
-            "type": "string"
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          }
+          "id": { "type": "integer" },
+          "guestName": { "type": "string" },
+          "roomName": { "type": "string" }
         }
       }
     }

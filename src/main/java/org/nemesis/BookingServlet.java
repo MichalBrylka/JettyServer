@@ -83,6 +83,14 @@ public class BookingServlet extends HttpServlet {
 
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // 1. Check Authentication
+        String authHeader = req.getHeader("Authorization");
+        if (authHeader == null || !isValid(authHeader)) {
+            resp.setHeader("WWW-Authenticate", "Basic realm=\"BookingAPI\"");
+            sendError(resp, 401, "Unauthorized: Authentication required");
+            return;
+        }
+
         String pathInfo = req.getPathInfo();
         if (pathInfo == null || pathInfo.equals("/")) {
             sendError(resp, 405, "Method Not Allowed on collection");
@@ -100,6 +108,11 @@ public class BookingServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             sendError(resp, 400, "Invalid ID format");
         }
+    }
+
+    private boolean isValid(String authHeader) {
+        // Basic admin:password
+        return authHeader.equals("Basic YWRtaW46cGFzc3dvcmQ=");
     }
 
     private void sendError(HttpServletResponse resp, int code, String msg) throws IOException {
