@@ -111,8 +111,20 @@ public class BookingServlet extends HttpServlet {
     }
 
     private boolean isValid(String authHeader) {
-        // Basic admin:password
-        return authHeader.equals("Basic YWRtaW46cGFzc3dvcmQ=");
+        if (authHeader == null || !authHeader.startsWith("Basic ")) {
+            return false;
+        }
+
+        // Define your credentials
+        String username = "admin";
+        String password = "password";
+
+        // Calculate the expected Base64 string
+        String credentials = username + ":" + password;
+        String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
+        String expectedHeader = "Basic " + encodedCredentials;
+
+        return expectedHeader.equals(authHeader);
     }
 
     private void sendError(HttpServletResponse resp, int code, String msg) throws IOException {
