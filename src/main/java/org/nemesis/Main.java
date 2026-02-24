@@ -10,7 +10,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import java.io.IOException;
 
 public class Main {
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         Server server = new Server(8080);
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
@@ -35,17 +35,9 @@ public class Main {
         context.addServlet(new ServletHolder(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-                // Look for the file in src/main/resources/swagger.json
-                try (var inputStream = getClass().getClassLoader().getResourceAsStream("swagger.json")) {
-                    if (inputStream == null) {
-                        resp.sendError(HttpServletResponse.SC_NOT_FOUND, "swagger.json not found in resources");
-                        return;
-                    }
-
-                    resp.setContentType("application/json");
-                    // Transfer the bytes directly from the file to the response output stream
-                    inputStream.transferTo(resp.getOutputStream());
-                }
+                var json = BookingOpenApiFactory.getSchema();
+                resp.setContentType("application/json");
+                resp.getWriter().println(json);
             }
         }), "/swagger.json");
 
