@@ -32,11 +32,13 @@ public class BookingOpenApiFactory {
         Components components = new Components()
                 .addSchemas("Booking", bookingSchema)
                 .addSchemas("Error", errorSchema)
-                .addSecuritySchemes("basicAuth",
+                .addSecuritySchemes("bearerAuth",
                         new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
-                                .scheme("basic")
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
                 );
+
 
         Operation getAll = new Operation()
                 .summary("List all bookings")
@@ -95,7 +97,7 @@ public class BookingOpenApiFactory {
 
         Operation delete = new Operation()
                 .summary("Delete booking")
-                .addSecurityItem(new SecurityRequirement().addList("basicAuth"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .addParametersItem(new Parameter()
                         .name("id")
                         .in("path")
@@ -120,6 +122,7 @@ public class BookingOpenApiFactory {
 
 
 
+
         // --- Paths ---
         Paths paths = new Paths()
                 .addPathItem("/bookings",
@@ -139,6 +142,7 @@ public class BookingOpenApiFactory {
                         .version("1.0.0"))
                 .servers(List.of(new Server().url("http://localhost:8080")))
                 .components(components)
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .paths(paths);
     }
 

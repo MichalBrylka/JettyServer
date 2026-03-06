@@ -1,0 +1,44 @@
+@host = http://localhost:8080
+
+
+### Login and store JWT
+POST {{host}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+> {%
+    // 1. Parse the response body
+    const body = response.body;
+
+    // 2. Extract the token (adjust 'body.token' if your JSON structure differs)
+    const token = body.token;
+
+    // 3. Save it to a global variable named 'authToken'
+    client.global.set("authToken", token);
+
+    console.log("Token saved successfully!");
+%}
+
+
+### Get bookings and capture first id
+GET {{host}}/bookings
+Accept: application/json
+
+> {%
+console.log( response.body);
+    const body = response.body;
+    client.global.set("bookingId", body[0].id);
+    console.log( body[0].id);
+%}
+
+
+
+### Delete booking using JWT
+DELETE {{host}}/bookings/{{bookingId}}
+Accept: application/json
+Authorization: Bearer {{authToken}}

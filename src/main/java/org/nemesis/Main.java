@@ -20,6 +20,7 @@ public class Main {
         // 1. Our API Endpoint
         context.addServlet(new ServletHolder(new BookingServlet()), "/bookings/*");
         context.addServlet(new ServletHolder(new HealthServlet()), "/health");
+        context.addServlet(new ServletHolder(new LoginServlet()), "/login");
 
         // 2. Mock Swagger Documentation Endpoint
         context.addServlet(new ServletHolder(new HttpServlet() {

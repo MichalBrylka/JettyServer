@@ -2,6 +2,11 @@ package org.nemesis;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
@@ -12,6 +17,7 @@ import jakarta.servlet.http.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@lombok.extern.slf4j.Slf4j
 public class BookingServlet extends HttpServlet {
     private final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
@@ -83,11 +89,17 @@ public class BookingServlet extends HttpServlet {
 
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // 1. Check Authentication
+        // 1. Check JWT Authentication
         String authHeader = req.getHeader("Authorization");
-        if (authHeader == null || !isValid(authHeader)) {
-            resp.setHeader("WWW-Authenticate", "Basic realm=\"BookingAPI\"");
-            sendError(resp, 401, "Unauthorized: Authentication required");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            resp.setHeader("WWW-Authenticate", "Bearer realm=\"BookingAPI\"");
+            sendError(resp, 401, "Unauthorized: JWT token required");
+            return;
+        }
+
+        String token = authHeader.substring(7);
+        if (!isValidJWT(token)) {
+            sendError(resp, 401, "Unauthorized: Invalid or expired token");
             return;
         }
 
@@ -110,21 +122,22 @@ public class BookingServlet extends HttpServlet {
         }
     }
 
-    private boolean isValid(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Basic ")) {
+    private boolean isValidJWT(String token) {
+        try {
+            String secretKey = "your-secret-key-change-this-in-production";
+
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+
+            Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token);
+
+            return true;
+        } catch (Exception e) {
+            log.warn("JWT validation failed: {}", e.getMessage());
             return false;
         }
-
-        // Define your credentials
-        String username = "admin";
-        String password = "password";
-
-        // Calculate the expected Base64 string
-        String credentials = username + ":" + password;
-        String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
-        String expectedHeader = "Basic " + encodedCredentials;
-
-        return expectedHeader.equals(authHeader);
     }
 
     private void sendError(HttpServletResponse resp, int code, String msg) throws IOException {
