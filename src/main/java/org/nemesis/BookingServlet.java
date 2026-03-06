@@ -2,11 +2,7 @@ package org.nemesis;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
@@ -92,51 +88,67 @@ public class BookingServlet extends HttpServlet {
         // 1. Check JWT Authentication
         String authHeader = req.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            resp.setHeader("WWW-Authenticate", "Bearer realm=\"BookingAPI\"");
-            sendError(resp, 401, "Unauthorized: JWT token required");
+            // No token provided
+            resp.setHeader("WWW-Authenticate",
+                    """
+                            Bearer realm="BookingAPI", \
+                            error="invalid_token", \
+                            error_description="JWT token required. Obtain a token via POST /login\"""");
+            sendError(resp, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: JWT token required");
             return;
         }
 
         String token = authHeader.substring(7);
-        if (!isValidJWT(token)) {
-            sendError(resp, 401, "Unauthorized: Invalid or expired token");
+
+        if (!(isValidJWT(token) instanceof Role role)) {
+            // Invalid or expired token
+            resp.setHeader("WWW-Authenticate",
+                    "Bearer realm=\"BookingAPI\", " +
+                    "error=\"invalid_token\", " +
+                    "error_description=\"Invalid or expired JWT. Obtain a new token via POST /login\"");
+            sendError(resp, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: Invalid or expired token");
+            return;
+        }
+        if (role != Role.ADMIN) {
+            // Insufficient permissions
+            resp.setHeader("WWW-Authenticate",
+                    "Bearer realm=\"BookingAPI\", " +
+                    "error=\"insufficient_scope\", " +
+                    "error_description=\"Admin role required to delete bookings\"");
+            sendError(resp, HttpServletResponse.SC_FORBIDDEN, "Forbidden: Admin role required");
             return;
         }
 
+        // 2. Validate the path
         String pathInfo = req.getPathInfo();
         if (pathInfo == null || pathInfo.equals("/")) {
-            sendError(resp, 405, "Method Not Allowed on collection");
+            sendError(resp, HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed on collection");
             return;
         }
 
+        // 3. Parse ID and remove booking
         try {
             int id = Integer.parseInt(pathInfo.substring(1));
             boolean removed = bookings.removeIf(b -> b.id == id);
             if (removed) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT); // 204
+                resp.setStatus(HttpServletResponse.SC_NO_CONTENT); // 204 No Content
             } else {
-                sendError(resp, 404, "Booking not found");
+                sendError(resp, HttpServletResponse.SC_NOT_FOUND, "Booking not found");
             }
         } catch (NumberFormatException e) {
-            sendError(resp, 400, "Invalid ID format");
+            sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Invalid ID format");
         }
     }
 
-    private boolean isValidJWT(String token) {
+    private Role isValidJWT(String token) {
         try {
-            String secretKey = "your-secret-key-change-this-in-production";
+            var claims = JwtService.parse(token);
+            String roleText = claims.get("role", String.class);
+            return Role.fromString(roleText);
 
-            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-
-            Jwts.parser()
-                    .verifyWith(key)
-                    .build()
-                    .parseSignedClaims(token);
-
-            return true;
         } catch (Exception e) {
             log.warn("JWT validation failed: {}", e.getMessage());
-            return false;
+            return null;
         }
     }
 

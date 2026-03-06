@@ -16,10 +16,11 @@ public class JwtService {
 
     private static final long EXPIRATION = 1000 * 60 * 60;
 
-    public static String createToken(String username) {
+    public static String createToken(String username, Role role) {
 
         return Jwts.builder()
                 .subject(username)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(KEY)
